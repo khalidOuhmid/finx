@@ -37,6 +37,7 @@ public class AlphaVantageClient {
                 );
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
         if(response.getStatusCode() == HttpStatus.OK) {
+
             return response.getBody();
         }else{
             throw new RuntimeException("Failed to fetch data from alphavantage API");

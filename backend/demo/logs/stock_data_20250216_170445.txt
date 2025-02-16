@@ -1,0 +1,2 @@
+Symbol,Price,High,Low,Timestamp
+IBM,261.28,261.94,257.91,2025-02-14 15:30:00
