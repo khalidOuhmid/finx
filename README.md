@@ -49,15 +49,3 @@ Develop a Spring Boot API for stock price prediction using Apache Spark, MongoDB
 6. Testing and Validation (US14, US15)
 7. Performance Optimization (US16)
 8. Documentation (US19, US21)
-
-## Getting Started
-1. Clone the repository
-2. Set up the development environment (Java, Maven, IDE)
-3. Install and configure Cassandra
-4. Run the Spring Boot application
-
-## Next Steps
-- Begin with US1 and US2 to set up the data infrastructure
-- Move on to US10 to have a basic API structure in place
-- Proceed with data preprocessing (US4, US5) to prepare for ML model development
-
