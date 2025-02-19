@@ -1,0 +1,23 @@
+# Étape 1 : Image de base avec JDK 21
+FROM eclipse-temurin:21-jdk-jammy
+
+# Étape 2 : Installer Maven
+RUN apt-get update && apt-get install -y maven
+
+# Étape 3 : Définir le répertoire de travail
+WORKDIR /app
+
+# Étape 4 : Copier uniquement le fichier pom.xml pour télécharger les dépendances
+COPY pom.xml .
+
+# Étape 5 : Télécharger les dépendances Maven (sans wrapper)
+RUN mvn dependency:resolve dependency:resolve-plugins -B
+
+# Étape 6 : Copier tout le code source dans le conteneur
+COPY . .
+
+# Étape 7 : Exposer le port par défaut de Spring Boot
+EXPOSE 8080
+
+# Étape 8 : Commande par défaut pour exécuter l'application en mode dev
+CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.profiles=dev"]

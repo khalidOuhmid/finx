@@ -1,0 +1,5 @@
+clean :
+docker-compose -f docker/compose/dev-compose.yml down -v --remove-orphans
+
+run :
+docker-compose -f docker/compose/dev-compose.yml up --build
