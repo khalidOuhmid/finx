@@ -1,5 +1,5 @@
 .git
-.mvn/
+../.mvn/
 target/
 *.iml
 *.log
