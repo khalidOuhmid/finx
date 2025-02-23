@@ -7,7 +7,6 @@ CREATE KEYSPACE IF NOT EXISTS stock_keyspace
 
 USE stock_keyspace;
 
--- Création des tables
 CREATE TABLE IF NOT EXISTS stock_indices(
                                             index_symbol text,
                                             country text,
@@ -56,7 +55,6 @@ CREATE TYPE IF NOT EXISTS indicator_type (
                                              parameters map<text, text>
                                          );
 
--- Indicateurs techniques
 CREATE TABLE IF NOT EXISTS technical_indicators(
                                                    stock_symbol text,
                                                    indicator frozen<indicator_type>,

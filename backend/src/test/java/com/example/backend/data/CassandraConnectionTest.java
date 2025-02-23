@@ -1,4 +1,4 @@
-package backend.data.cassandra;
+package com.example.backend.data;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 
