@@ -1,4 +1,4 @@
-package com.example.backend.spark;
+package backend.data.sparkdataprocessing;
 
 import org.apache.spark.sql.*;
 import org.springframework.stereotype.Component;
@@ -27,7 +27,6 @@ public class SparkDataProcessor {
 
     public void processMarketPrice(String jsonData, String collectionName) {
         initializeSpark();
-
         try {
             Dataset<Row> df = spark.read()
                     .json(spark.createDataset(List.of(jsonData), Encoders.STRING()));
@@ -39,11 +38,9 @@ public class SparkDataProcessor {
                     "chart.result[0].indicators.quote[0].low[0] as low",
                     "from_unixtime(chart.result[0].timestamp[0]) as timestamp"
             );
-
             String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
             String logFilePath = "logs/stock_data_" + timestamp + ".txt";
 
-            // Écrire les données dans un fichier texte
             writeToTextFile(transformedDF, logFilePath);
 
             transformedDF.write()

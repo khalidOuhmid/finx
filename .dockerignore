@@ -1,5 +1,28 @@
-.git
-../.mvn/
+# Fichiers Maven
 target/
-*.iml
+
+# Fichiers de configuration d'IDE (Ex : IntelliJ IDEA, VSCode)
+.idea/
+.vscode/
+
+# Fichiers temporaires créés par l'OS
+.DS_Store
+Thumbs.db
+
+# Fichiers spécifiques aux outils de débogage
 *.log
+
+# Fichiers de cache de Maven
+.m2/
+
+# Node.js (si applicable)
+node_modules/
+
+# Spring Boot DevTools (si tu n'en as pas besoin dans l'image Docker)
+spring-boot-devtools
+
+# Fichiers de compilation
+*.class
+*.jar
+*.war
+*.ear

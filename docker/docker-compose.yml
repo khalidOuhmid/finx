@@ -1,0 +1,79 @@
+services:
+  cassandra1:
+    image: cassandra:5.0
+    hostname: cassandra1
+    ports:
+      - "9042:9042"
+      - "7000:7000"
+    volumes:
+      - cassandra-data:/var/lib/cassandra
+      - ../cassandra/init.cql:/docker-entrypoint-initdb.d/init.cql:ro
+    environment:
+      CASSANDRA_CLUSTER_NAME: dev-cluster
+      CASSANDRA_DC: datacenter1
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_NUM_TOKENS: 256
+      CASSANDRA_SEEDS: "cassandra1"
+      JVM_OPTS: "-Xmx4G -Xms2G"
+    networks:
+      - stock-net
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh cassandra1 9042 -e 'DESCRIBE KEYSPACES;' || exit 1"]
+      interval: 20s
+      timeout: 30s
+      retries: 15
+  spark-master:
+    image: bitnami/spark:3.5.1
+    ports:
+      - "4040:4040"
+      - "7077:7077"
+      - "8080:8080"
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_HOST: spark-master
+      SPARK_LOCAL_IP: spark-master
+    networks:
+      - stock-net
+
+  spark-worker:
+    image: bitnami/spark:3.5.1
+    depends_on:
+      - spark-master
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 4G
+      SPARK_WORKER_CORES: 2
+    networks:
+      - stock-net
+
+  spring-app:
+    build:
+      context: ../backend/
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../backend/src:/app/src
+      - ../backend/target:/app/target
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_CASSANDRA_CONTACTPOINTS: cassandra1
+      SPRING_DATA_CASSANDRA_LOCAL_DATACENTER: datacenter1
+      SPRING_DATA_CASSANDRA_PORT: 9042
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_DEVTOOLS_LIVE_RELOAD_ENABLED: "true"
+    networks:
+      - stock-net
+    depends_on:
+      cassandra1:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+
+networks:
+  stock-net:
+    driver: bridge
+
+volumes:
+  cassandra-data:

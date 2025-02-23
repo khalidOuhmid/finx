@@ -1,4 +1,4 @@
-package com.example.backend.external;
+package backend.api.client;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;

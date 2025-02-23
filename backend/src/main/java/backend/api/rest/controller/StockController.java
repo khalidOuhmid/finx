@@ -1,7 +1,7 @@
-package com.example.backend.controller;
+package backend.api.rest.controller;
 
-import com.example.backend.service.datacollector.YahooFinanceService;
-import com.example.backend.spark.SparkDataProcessor;
+import backend.api.client.YahooFinanceService;
+import backend.data.sparkdataprocessing.SparkDataProcessor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
