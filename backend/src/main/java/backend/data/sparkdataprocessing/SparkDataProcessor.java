@@ -8,18 +8,35 @@ import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
+import org.springframework.beans.factory.annotation.Value;
 @Component
 public class SparkDataProcessor {
-    private final String mongoUri = "mongodb://admin:motdepassesecret@localhost:27017/finx";
+
+    @Value("${cassandra.contact-points}")
+    private String cassandraHost;
+
+    @Value("{cassandra.port}")
+    private String cassandraPort;
+
+    @Value("{cassandra.keyspace-name}")
+    private String cassandraKeyspace;
+
+    @Value("{cassandra.local-datacenter}")
+    private String cassandraDatacenter;
+
     private SparkSession spark;
 
     public void initializeSpark() {
         if (spark == null || spark.sparkContext().isStopped()) {
+            System.out.println("Initializing spark \n" +
+                    "Cassandra Host : " + cassandraHost + "\n" +
+                    "Cassandra Port : " + cassandraPort + "\n" +
+                    "Cassandra Keyspace : " + cassandraKeyspace + "\n" +
+                    "Cassandra Datacenter : " + cassandraDatacenter );
+
             spark = SparkSession.builder()
-                    .appName("StockDataProcessor")
-                    .config("spark.mongodb.read.connection.uri", mongoUri)
-                    .config("spark.mongodb.write.connection.uri", mongoUri)
+                    .appName("SparkCassandraConnector")
+                    .config("spark.cassandra.connection.host",)
                     .master("local[*]")
                     .getOrCreate();
         }
