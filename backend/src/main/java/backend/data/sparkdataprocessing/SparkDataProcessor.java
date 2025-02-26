@@ -1,5 +1,6 @@
-package backend.data.sparkdataprocessing;
-
+package data.sparkdataprocessing;
+import lombok.Getter;
+import org.apache.log4j.Logger;
 import org.apache.spark.sql.*;
 import org.springframework.stereotype.Component;
 import java.io.FileWriter;
@@ -12,95 +13,64 @@ import org.springframework.beans.factory.annotation.Value;
 @Component
 public class SparkDataProcessor {
 
+    private static final Logger logger = Logger.getLogger(SparkDataProcessor.class);
+
     @Value("${cassandra.contact-points}")
     private String cassandraHost;
 
     @Value("{cassandra.port}")
     private String cassandraPort;
 
-    @Value("{cassandra.keyspace-name}")
-    private String cassandraKeyspace;
-
     @Value("{cassandra.local-datacenter}")
     private String cassandraDatacenter;
 
     private SparkSession spark;
 
+
+    /**
+     *Initialize the spark session with a cassandra connection
+     */
     public void initializeSpark() {
         if (spark == null || spark.sparkContext().isStopped()) {
-            System.out.println("Initializing spark \n" +
-                    "Cassandra Host : " + cassandraHost + "\n" +
-                    "Cassandra Port : " + cassandraPort + "\n" +
-                    "Cassandra Keyspace : " + cassandraKeyspace + "\n" +
-                    "Cassandra Datacenter : " + cassandraDatacenter );
-
-            spark = SparkSession.builder()
-                    .appName("SparkCassandraConnector")
-                    .config("spark.cassandra.connection.host",)
-                    .master("local[*]")
-                    .getOrCreate();
-        }
-    }
-
-    public void processMarketPrice(String jsonData, String collectionName) {
-        initializeSpark();
-        try {
-            Dataset<Row> df = spark.read()
-                    .json(spark.createDataset(List.of(jsonData), Encoders.STRING()));
-
-            Dataset<Row> transformedDF = df.selectExpr(
-                    "chart.result[0].meta.symbol as symbol",
-                    "chart.result[0].meta.regularMarketPrice as price",
-                    "chart.result[0].indicators.quote[0].high[0] as high",
-                    "chart.result[0].indicators.quote[0].low[0] as low",
-                    "from_unixtime(chart.result[0].timestamp[0]) as timestamp"
-            );
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-            String logFilePath = "logs/stock_data_" + timestamp + ".txt";
-
-            writeToTextFile(transformedDF, logFilePath);
-
-            transformedDF.write()
-                    .format("mongodb")
-                    .option("collection", collectionName)
-                    .mode(SaveMode.Append)
-                    .save();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void writeToTextFile(Dataset<Row> df, String filePath) {
-        try (FileWriter fw = new FileWriter(filePath, true);
-             PrintWriter pw = new PrintWriter(fw)) {
-
-            // Écrire l'en-tête
-            pw.println("Symbol,Price,High,Low,Timestamp");
-
-            // Écrire chaque ligne de données
-            List<Row> rows = df.collectAsList();
-            for (Row row : rows) {
-                String line = String.format("%s,%.2f,%.2f,%.2f,%s",
-                        row.getAs("symbol"),
-                        row.getAs("price"),
-                        row.getAs("high"),
-                        row.getAs("low"),
-                        row.getAs("timestamp"));
-                pw.println(line);
+            System.out.println("[SPARK] --- Initializing spark \n" +
+                    " [SPARK] --- Cassandra Host : " + cassandraHost + "\n" +
+                    " [SPARK] --- Cassandra Port : " + cassandraPort + "\n" +
+                    " [SPARK] --- Cassandra Datacenter : " + cassandraDatacenter);
+            try {
+                spark = SparkSession.builder()
+                        .appName("SparkCassandraConnector")
+                        .config("spark.cassandra.connection.host", cassandraHost)
+                        .config("spark.cassandra.connection.port", cassandraPort)
+                        .config("spark.cassandra.datacenter", cassandraDatacenter)
+                        .config("spark.cassandra.read.timeout", "10s")
+                        .master("local[*]")
+                        .getOrCreate();
+            } catch (Exception e) {
+                logger.error("[SPARK] --- Error initializing spark", e);
             }
-
-            System.out.println("Données écrites dans le fichier : " + filePath);
-        } catch (IOException e) {
-            System.err.println("Erreur lors de l'écriture dans le fichier : " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
+    /**
+     * Close the spark Session
+     */
     public void closeSparkSession() {
         if (spark != null) {
             spark.close();
+            System.out.println("[SPARK] --- Closing spark session");
             spark = null;
         }
     }
+
+    /**
+     * Get the spark session if initialized
+     * @return the spark session
+     */
+    public SparkSession getSpark() {
+        if (spark == null || spark.sparkContext().isStopped()) {
+            throw new IllegalStateException("Spark session is not initialized");
+        }
+        return spark;
+    }
+
 }

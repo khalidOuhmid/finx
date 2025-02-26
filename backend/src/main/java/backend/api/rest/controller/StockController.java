@@ -1,7 +1,8 @@
-package backend.api.rest.controller;
+package api.rest.controller;
 
-import backend.api.client.YahooFinanceService;
-import backend.data.sparkdataprocessing.SparkDataProcessor;
+import api.client.YahooFinanceService;
+import data.sparkdataprocessing.SparkDataProcessor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,8 +21,7 @@ public class StockController {
     public ResponseEntity<String> processStock(@PathVariable String symbol) {
         try{
             String jsonData = yahooService.getGlobalQuote(symbol,"1d");
-            sparkProcessor.processMarketPrice(jsonData,"stocksHistory");
-            return ResponseEntity.ok("Données traitées avec succès");
+            return new ResponseEntity<>(jsonData, HttpStatus.OK);
         }catch (Exception e){
             return ResponseEntity.internalServerError().body("Erreure de traitement : " + e.getMessage());
         }
