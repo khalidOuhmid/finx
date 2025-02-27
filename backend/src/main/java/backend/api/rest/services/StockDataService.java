@@ -1,6 +1,6 @@
-package api.rest.controller;
+package backend.api.rest.services;
 
-import api.client.AlphaVantageClient;
+import backend.api.client.AlphaVantageClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;

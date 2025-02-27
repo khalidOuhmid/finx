@@ -1,27 +1,19 @@
-package data.sparkdataprocessing;
-import lombok.Getter;
+package backend.data.sparkdataprocessing;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.*;
-import org.springframework.stereotype.Component;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
-@Component
+
 public class SparkDataProcessor {
 
     private static final Logger logger = Logger.getLogger(SparkDataProcessor.class);
 
-    @Value("${cassandra.contact-points}")
+    @Value("${spring.cassandra.contact-points}")
     private String cassandraHost;
 
-    @Value("{cassandra.port}")
+    @Value("{spring.cassandra.port}")
     private String cassandraPort;
 
-    @Value("{cassandra.local-datacenter}")
+    @Value("{spring.cassandra.local-datacenter}")
     private String cassandraDatacenter;
 
     private SparkSession spark;

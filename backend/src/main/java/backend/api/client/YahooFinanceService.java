@@ -1,14 +1,10 @@
-package api.client;
+package backend.api.client;
 
 import org.springframework.http.*;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-@Component
+@Service
 public class YahooFinanceService {
-
-    public static void main(String[] args) throws Exception {
-        System.out.println(getGlobalQuote("AMZN", "1d"));
-    }
 
     public static String getGlobalQuote(String company, String range) {
         String url = String.format(
@@ -29,4 +25,3 @@ public class YahooFinanceService {
             }
         }
     }
-
