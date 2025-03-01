@@ -1,129 +1,102 @@
+-- Création du keyspace avec réplication simple (single-node)
 CREATE KEYSPACE IF NOT EXISTS stock_keyspace
     WITH replication = {
         'class': 'SimpleStrategy',
         'replication_factor': 1
-        };
+        } AND durable_writes = true;
 
 USE stock_keyspace;
 
--- Table for stock market indices (NASDAQ, CAC40, etc.)
+-- Table des indices boursiers (stock indices)
 CREATE TABLE IF NOT EXISTS stock_indices (
-                                             index_symbol text,
                                              country text,
-                                             description text,
-                                             company_count int,
-                                             last_updated timestamp,
-                                             PRIMARY KEY (index_symbol, country)
-) WITH CLUSTERING ORDER BY (country ASC)
-   AND comment = 'Reference data for global stock market indices';
+                                             index_symbol text,
+                                             composition frozen<set<text>>, -- Liste des symboles composants l'indice
+                                             volatility double,
+                                             sector_weights map<text, double>, -- Pondération par secteur (%)
+                                             last_rebalanced timestamp,
+                                             PRIMARY KEY ((country, index_symbol))
+) WITH compaction = {
+    'class': 'LeveledCompactionStrategy',
+    'sstable_size_in_mb': 1024
+    }
+   AND comment = 'Indices par pays avec composition dynamique';
 
--- Company information table
+-- Table des entreprises (company metadata)
 CREATE TABLE IF NOT EXISTS companies (
                                          company_symbol text,
-                                         company_name text,
-                                         stock_index text,
-                                         sector text,
-                                         country text,
-                                         ipo_date date,
-                                         PRIMARY KEY (company_symbol, stock_index)
-) WITH CLUSTERING ORDER BY (stock_index ASC)
-   AND comment = 'Company metadata and index membership';
+                                         indexed_values frozen<map<text, double>>, -- Ex : P/E ratio, Market Cap, etc.
+                                         related_indicators list<text>, -- Indicateurs techniques liés (ex : RSI, SMA)
+                                         PRIMARY KEY (company_symbol)
+) WITH compaction = {
+    'class': 'SizeTieredCompactionStrategy'
+    }
+   AND bloom_filter_fp_chance = 0.01;
 
--- Reverse index for sector-based queries
-CREATE TABLE IF NOT EXISTS companies_by_sector (
-                                                   sector text,
-                                                   company_symbol text,
-                                                   company_name text,
-                                                   country text,
-                                                   PRIMARY KEY (sector, company_symbol)
-) WITH CLUSTERING ORDER BY (company_symbol ASC)
-   AND comment = 'Denormalized table for sector-based lookups';
+-- Modèles factoriels (factor models)
+CREATE TABLE IF NOT EXISTS factor_models (
+                                             model_id uuid,
+                                             factors frozen<map<text, double>>, -- Facteurs de risque et leurs pondérations
+                                             r_squared double, -- Coefficient de détermination (qualité du modèle)
+                                             last_updated timestamp,
+                                             PRIMARY KEY (model_id)
+) WITH compaction = {
+    'class': 'TimeWindowCompactionStrategy',
+    'compaction_window_unit': 'DAYS',
+    'compaction_window_size': 7
+    };
 
--- Raw market data storage (time-series optimized)
-CREATE TABLE IF NOT EXISTS raw_stock_data (
-                                              company_symbol text,
-                                              time_bucket text,  -- Format: 'YYYY-MM' for monthly partitioning
+-- Métriques de risque (risk metrics)
+CREATE TABLE IF NOT EXISTS risk_metrics (
+                                            portfolio_id uuid,
+                                            metric_date timestamp,
+                                            var_95 double, -- Value at Risk à 95%
+                                            expected_shortfall double, -- Perte attendue au-delà du VaR
+                                            stress_scenarios frozen<map<text, double>>, -- Résultats des tests de stress par scénario
+                                            PRIMARY KEY (portfolio_id, metric_date)
+) WITH CLUSTERING ORDER BY (metric_date DESC)
+   AND default_time_to_live = 2592000;
+
+-- Données de marché (market data en séries temporelles)
+CREATE TABLE IF NOT EXISTS market_data_1m (
+                                              symbol text,
+                                              date_bucket text, -- Partition mensuelle ('YYYY-MM')
                                               timestamp timestamp,
                                               open double,
                                               close double,
                                               high double,
                                               low double,
-                                              volume bigint,
-                                              source text,
-                                              PRIMARY KEY ((company_symbol, time_bucket), timestamp)
+                                              volume counter,
+                                              PRIMARY KEY ((symbol, date_bucket), timestamp)
 ) WITH CLUSTERING ORDER BY (timestamp DESC)
    AND compaction = {
             'class': 'TimeWindowCompactionStrategy',
             'compaction_window_unit': 'DAYS',
-            'compaction_window_size': 30
+            'compaction_window_size': 1
             }
-   AND default_time_to_live = 63072000  -- 2-year retention
-   AND comment = 'Raw price/volume data with automatic expiration';
+   AND default_time_to_live = 2592000;
 
--- Precomputed technical indicators storage
-CREATE TABLE IF NOT EXISTS technical_indicators (
-                                                    stock_symbol text,
-                                                    indicator_name text,  -- 'SMA', 'RSI', 'MACD', etc.
-                                                    period int,           -- Calculation period (e.g., 14 for RSI)
-                                                    timestamp timestamp,
-                                                    value double,
-                                                    parameters map<text, text>,  -- Additional parameters if needed
-                                                    PRIMARY KEY ((stock_symbol, indicator_name, period), timestamp)
-) WITH CLUSTERING ORDER BY (timestamp DESC)
-   AND caching = {
-            'keys': 'ALL',
-            'rows_per_partition': '360'
-            }
-   AND comment = 'Precomputed technical analysis indicators';
+-- Corrélations entre actifs financiers (cross-asset correlations)
+CREATE TABLE IF NOT EXISTS asset_correlations (
+                                                  base_asset text,
+                                                  target_asset text,
+                                                  timeframe text, -- Ex : "daily", "weekly"
+                                                  correlation double,
+                                                  last_updated timestamp,
+                                                  PRIMARY KEY ((base_asset), target_asset, timeframe)
+) WITH compaction = {
+    'class': 'SizeTieredCompactionStrategy'
+    }
+   AND comment = 'Corrélations historiques entre actifs';
 
--- Machine learning predictions storage
-CREATE TABLE IF NOT EXISTS predictions (
-                                           stock_symbol text,
-                                           model_version text,
-                                           prediction_time timestamp,
-                                           predicted_value double,
-                                           confidence_interval tuple<double, double>,
-                                           features map<text, double>,
-                                           PRIMARY KEY ((stock_symbol, model_version), prediction_time)
-) WITH CLUSTERING ORDER BY (prediction_time DESC)
-   AND comment = 'AI/ML model prediction results';
-
--- Backtesting results storage
-CREATE TABLE IF NOT EXISTS backtest_results (
-                                                strategy_id uuid,
-                                                backtest_date timestamp,
-                                                sharpe_ratio double,
-                                                max_drawdown double,
-                                                total_return double,
-                                                parameters map<text, text>,
-                                                PRIMARY KEY (strategy_id, backtest_date)
-) WITH CLUSTERING ORDER BY (backtest_date DESC)
-   AND comment = 'Historical backtesting performance metrics';
-
--- Social media sentiment data
-CREATE TABLE IF NOT EXISTS market_sentiment (
-                                                symbol text,
-                                                source text,
-                                                timestamp timestamp,
-                                                sentiment_score double,
-                                                keywords map<text, int>,
-                                                raw_text text,
-                                                PRIMARY KEY ((symbol, source), timestamp)
-) WITH CLUSTERING ORDER BY (timestamp DESC)
-   AND compression = {
-            'sstable_compression': 'ZstdCompressor',
-            'chunk_length_kb': 64
-            }
-   AND comment = 'Sentiment analysis from social media sources';
-
--- User query audit log
-CREATE TABLE IF NOT EXISTS user_queries (
-                                            user_id uuid,
-                                            query_time timestamp,
-                                            query_type text,
-                                            parameters map<text, text>,
-                                            result_summary text,
-                                            PRIMARY KEY (user_id, query_time)
-) WITH CLUSTERING ORDER BY (query_time DESC)
-   AND default_time_to_live = 2592000  -- 30-day retention
-   AND comment = 'User activity and query audit log';
+-- Métriques de qualité des données (data quality metrics)
+CREATE TABLE IF NOT EXISTS data_quality_metrics (
+                                                    source text,
+                                                    metric_date text, -- Format : YYYY-MM-DD
+                                                    completeness double, -- % de données complètes disponibles
+                                                    latency double, -- Temps moyen d'ingestion en secondes
+                                                    accuracy double, -- Précision estimée (%)
+                                                    PRIMARY KEY (source, metric_date)
+) WITH compaction = {
+    'class': 'LeveledCompactionStrategy'
+    };
