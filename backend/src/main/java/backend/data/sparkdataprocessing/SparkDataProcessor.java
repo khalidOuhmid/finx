@@ -2,19 +2,21 @@ package backend.data.sparkdataprocessing;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
+@Service
 public class SparkDataProcessor {
 
     private static final Logger logger = Logger.getLogger(SparkDataProcessor.class);
 
     @Value("${spring.cassandra.contact-points}")
-    private String cassandraHost;
+    private String cassandraHost = "127.0.0.1";
 
-    @Value("{spring.cassandra.port}")
-    private String cassandraPort;
+    @Value("${spring.cassandra.port}")
+    private int  cassandraPort  = 9042;
 
-    @Value("{spring.cassandra.local-datacenter}")
-    private String cassandraDatacenter;
+    @Value("${spring.cassandra.local-datacenter}")
+    private String cassandraDatacenter = "datacenter1";
 
     private SparkSession spark;
 
