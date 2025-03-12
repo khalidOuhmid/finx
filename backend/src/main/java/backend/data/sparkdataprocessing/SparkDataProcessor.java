@@ -24,7 +24,7 @@ public class SparkDataProcessor {
     /**
      *Initialize the spark session with a cassandra connection
      */
-    public void initializeSpark() {
+    public void initializeSparkForCassandra() {
         if (spark == null || spark.sparkContext().isStopped()) {
             System.out.println("[SPARK] --- Initializing spark \n" +
                     " [SPARK] --- Cassandra Host : " + cassandraHost + "\n" +
