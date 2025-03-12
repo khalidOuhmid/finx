@@ -1,183 +1,141 @@
-# Financial Market Data Schema Documentation
+# AlgoFinIA - Financial Analysis Platform Inspired by Aladdin
 
-## **Keyspace Configuration**
-```sql
-CREATE KEYSPACE IF NOT EXISTS stock_keyspace
-WITH replication = {
-    'class': 'SimpleStrategy',
-    'replication_factor': 1
-};
-```
-- Uses SimpleStrategy for development (switch to NetworkTopologyStrategy in production)
-- Single-node configuration for testing purposes
+## Project Description
 
----
+AlgoFinIA is a financial analysis platform inspired by BlackRock's Aladdin, developed in Java. The project aims to create a comprehensive system capable of collecting, analyzing, and visualizing financial data, performing Monte Carlo simulations, calculating risk metrics, and optimizing investment portfolios.
 
-## **Core Tables**
+Eventually, this platform will offer advanced features such as real-time analysis with NLP, interactive dashboards, and AI-based automated portfolio management.
 
-### 1. Stock Indices Reference
-```sql
-CREATE TABLE stock_indices (
-    index_symbol text,
-    country text,
-    description text,
-    company_count int,
-    last_updated timestamp,
-    PRIMARY KEY (index_symbol, country)
-) WITH CLUSTERING ORDER BY (country ASC);
-```
-- Stores global market indices (NASDAQ, CAC40, etc.)
-- Composite partition key: `(index_symbol, country)`
+## Tech Stack
 
-### 2. Company Information
-```sql
-CREATE TABLE companies (
-    company_symbol text,
-    company_name text,
-    stock_index text,
-    sector text,
-    country text,
-    ipo_date date,
-    PRIMARY KEY (company_symbol, stock_index)
-) WITH CLUSTERING ORDER BY (stock_index ASC);
-```
-- Stores company metadata with composite primary key
-- Optimized for queries: `SELECT * FROM companies WHERE company_symbol = 'AAPL'`
+- **Java** - Main development language
+- **Spring** - Framework for web applications and infrastructure
+- **Apache Spark** - Distributed large-scale data processing
+- **Cassandra** - Distributed NoSQL database for storage
+- **Deeplearning4j** - Deep learning framework for Java
+- **Kafka** - Distributed messaging system for real-time streaming
 
-### 3. Sector-Based Index
-```sql
-CREATE TABLE companies_by_sector (
-    sector text,
-    company_symbol text,
-    company_name text,
-    country text,
-    PRIMARY KEY (sector, company_symbol)
-);
-```
-- Denormalized table for sector-based queries
-- Replaces secondary indexes for better performance
+**Note:** This project is in active development. Features and architecture may change as development progresses.
 
----
+## Current Progress
 
-## **Market Data Storage**
+| Phase | Goal | Status |
+|-------|------|--------|
+| Phase 1 | Goal 1: Retrieve and Normalize Yahoo Finance Data | ✅ Completed |
+| Phase 1 | Goal 2: Create Cassandra Schema | ✅ Completed |
+| Phase 2 | Goal 3: Calculate Technical Indicators | 🔄 In progress |
+| Phase 2-6 | Goals 4-12 | ⏳ Planned |
 
-### 4. Raw Market Data
-```sql
-CREATE TABLE raw_stock_data (
-    company_symbol text,
-    time_bucket text,  -- Format: 'YYYY-MM' for monthly partitioning
-    timestamp timestamp,
-    open double,
-    close double,
-    high double,
-    low double,
-    volume bigint,
-    source text,
-    PRIMARY KEY ((company_symbol, time_bucket), timestamp)
-) WITH CLUSTERING ORDER BY (timestamp DESC)
-   AND compaction = {
-        'class': 'TimeWindowCompactionStrategy',
-        'compaction_window_unit': 'DAYS',
-        'compaction_window_size': 30
-   }
-   AND default_time_to_live = 63072000;  -- 2-year retention
-```
-- Time-series optimized storage
-- Uses TWCS for efficient time-based compaction
-- Automatic data expiration after 2 years
+## Detailed Roadmap
 
-### 5. Technical Indicators
-```sql
-CREATE TABLE technical_indicators (
-    stock_symbol text,
-    indicator_name text,  -- 'SMA', 'RSI', 'MACD', etc.
-    period int,           -- Calculation period (e.g., 14 for RSI)
-    timestamp timestamp,
-    value double,
-    parameters map<text, text>,  -- Additional parameters if needed
-    PRIMARY KEY ((stock_symbol, indicator_name, period), timestamp)
-) WITH CLUSTERING ORDER BY (timestamp DESC);
-```
-- Precomputed technical indicators storage
-- Composite partition key allows efficient queries:
-  ```sql
-  SELECT * FROM technical_indicators 
-  WHERE stock_symbol = 'AAPL' 
-  AND indicator_name = 'SMA' 
-  AND period = 50;
-  ```
+### **PHASE 1 : Foundational Technologies**
 
----
+#### **Goal 1 : Retrieve and Normalize Yahoo Finance Data** ✅
+- **Sub-tasks completed:**
+  - Configure Yahoo Finance API client
+  - Retrieve historical data (price, volume, etc.) over a given period
+  - Load data into a Spark DataFrame
+  - Normalize columns (timestamp, open, close, high, low, volume)
+  - Write normalized data to Cassandra (`market_data_1m`)
 
-## **Machine Learning Integration**
+#### **Goal 2 : Create Cassandra Schema** ✅
+- **Sub-tasks completed:**
+  - Design necessary tables:
+    - `market_data_1m` for time series
+    - `asset_correlations` for correlations between assets
+    - `risk_metrics` for Monte Carlo simulations and stress tests
+  - Configure keyspace with a simple replication strategy
+  - Test writing and reading data in Cassandra
 
-### 6. Prediction Results
-```sql
-CREATE TABLE predictions (
-    stock_symbol text,
-    model_version text,
-    prediction_time timestamp,
-    predicted_value double,
-    confidence_interval tuple<double, double>,
-    features map<text, double>,
-    PRIMARY KEY ((stock_symbol, model_version), prediction_time)
-) WITH CLUSTERING ORDER BY (prediction_time DESC);
-```
-- Stores model predictions with versioning
-- Includes feature vectors for traceability
+### **PHASE 2 : Quantitative Analysis**
 
-### 7. Backtest Metrics
-```sql
-CREATE TABLE backtest_results (
-    strategy_id uuid,
-    backtest_date timestamp,
-    sharpe_ratio double,
-    max_drawdown double,
-    total_return double,
-    parameters map<text, text>,
-    PRIMARY KEY (strategy_id, backtest_date)
-) WITH CLUSTERING ORDER BY (backtest_date DESC);
-```
-- Historical backtesting performance tracking
+#### **Goal 3 : Calculate Technical Indicators** 🔄
+- **Sub-tasks in progress:**
+  - Implement each technical indicator:
+    - SMA (Simple Moving Average)
+    - EMA (Exponential Moving Average)
+    - RSI (Relative Strength Index)
+    - MACD (EMA12, EMA26, signal line)
+    - Bollinger Bands (average + standard deviations)
+    - Stochastic Oscillator (%K, %D)
+    - OBV (On-Balance Volume)
+  - Add these indicators to existing data in `market_data_1m`
+  - Validate calculations by comparing with financial tools like TradingView
 
----
+#### **Goal 4 : Build Correlation Matrices** ⏳
+- **Planned sub-tasks:**
+  - Calculate correlations between financial assets over different periods (daily, weekly, monthly) with Spark
+  - Store results in the Cassandra `asset_correlations` table
+  - Visualize correlations as a heatmap (optional)
 
-## **Sentiment Analysis**
+### **PHASE 3 : Advanced Models and Simulations**
 
-### 8. Social Sentiment
-```sql
-CREATE TABLE market_sentiment (
-    symbol text,
-    source text,
-    timestamp timestamp,
-    sentiment_score double,
-    keywords map<text, int>,
-    raw_text text,
-    PRIMARY KEY ((symbol, source), timestamp)
-) WITH CLUSTERING ORDER BY (timestamp DESC)
-   AND compression = {
-        'sstable_compression': 'ZstdCompressor',
-        'chunk_length_kb': 64
-   };
-```
-- Stores social media sentiment data
-- Zstd compression reduces storage footprint by ~80%
+#### **Goal 5 : Implement Monte Carlo Simulations** ⏳
+- **Planned sub-tasks:**
+  - Generate random scenarios to model future price evolution of assets:
+    - Geometric Brownian motion model
+  - Parallelize simulations with Spark to improve performance
+  - Calculate metrics such as:
+    - Value-at-Risk (VaR)
+    - Expected Shortfall (ES)
+  - Store results in the `risk_metrics` table
 
----
+#### **Goal 6 : Implement Stress Testing** ⏳
+- **Planned sub-tasks:**
+  - Build hypothetical scenarios:
+    - Interest rate hikes
+    - Stock market crash
+    - Major geopolitical events
+  - Simulate the impact of these scenarios on financial portfolios
+  - Store results in the `risk_metrics` table
 
-## **Audit & Monitoring**
+#### **Goal 7 : Integrate Deeplearning4j for Prediction** ⏳
+- **Planned sub-tasks:**
+  - Load calculated technical data (SMA, EMA, RSI, etc.) into ND4J
+  - Build a simple model based on a dense network or LSTM to predict future prices
+  - Evaluate model performance with metrics like RMSE or MAPE
+  - Save the trained model for future use
 
-### 9. User Queries Log
-```sql
-CREATE TABLE user_queries (
-    user_id uuid,
-    query_time timestamp,
-    query_type text,
-    parameters map<text, text>,
-    result_summary text,
-    PRIMARY KEY (user_id, query_time)
-) WITH CLUSTERING ORDER BY (query_time DESC)
-   AND default_time_to_live = 2592000;  -- 30-day retention
-```
-- Automatically expires audit logs after 30 days
+### **PHASE 4 : Real-Time and Automation**
+
+#### **Goal 8 : Configure Kafka for Real-Time Streaming** ⏳
+- **Planned sub-tasks:**
+  - Configure a Kafka cluster with multiple partitions
+  - Create a `market-data-stream` topic to broadcast real-time stock data
+  - Implement a Kafka producer to send data retrieved via the Yahoo Finance API
+  - Create a Kafka consumer with Spark Structured Streaming to read and process this data
+
+#### **Goal 9 : Automated Portfolio Management** ⏳
+- **Planned sub-tasks:**
+  - Implement an optimization engine based on the mean/variance model (Markowitz)
+  - Add dynamic rules to automatically adjust allocations based on calculated risk or opportunities detected by AI
+  - Automate rebalancing via predefined strategies
+
+### **PHASE 5 : Aladdin-Inspired Features**
+
+#### **Goal 10 : Real-Time Analysis with NLP** ⏳
+- **Planned sub-tasks:**
+  - Integrate an NLP engine (like SpaCy or Apache OpenNLP) to analyze financial news or social networks
+  - Implement real-time sentiment analysis to detect positive or negative trends on financial assets
+  - Connect data streams to Kafka for real-time processing
+
+#### **Goal 11 : ESG Analysis (Environmental, Social and Governance)** ⏳
+- **Planned sub-tasks:**
+  - Collect ESG data from external sources (e.g., Refinitiv or Bloomberg ESG API)
+  - Normalize this data and calculate an ESG score per company
+  - Build an AI-based ESG evaluation model
+  - Integrate these scores into investment decisions
+
+### **PHASE 6 : Visualization and Reporting**
+
+#### **Goal 12 : Visual Dashboard** ⏳
+- **Planned sub-tasks:**
+  - Build an interactive dashboard with Angular or React to visualize:
+    - Portfolio performance (return, volatility)
+    - Asset correlations as a heatmap
+    - Results of stress tests and Monte Carlo simulations
+  - Add customizable widgets so users can choose which metrics to display
+  - Connect the Spring Boot backend to the frontend via REST/GraphQL APIs
+
+
 
