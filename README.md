@@ -1,8 +1,8 @@
-# AlgoFinIA - Financial Analysis Platform Inspired by Aladdin
+# FinIA - Financial Analysis Platform Inspired by Aladdin
 
 ## Project Description
 
-AlgoFinIA is a financial analysis platform inspired by BlackRock's Aladdin, developed in Java. The project aims to create a comprehensive system capable of collecting, analyzing, and visualizing financial data, performing Monte Carlo simulations, calculating risk metrics, and optimizing investment portfolios.
+FinIA is a financial analysis platform inspired by BlackRock's Aladdin, developed in Java. The project aims to create a comprehensive system capable of collecting, analyzing, and visualizing financial data, performing Monte Carlo simulations, calculating risk metrics, and optimizing investment portfolios.
 
 Eventually, this platform will offer advanced features such as real-time analysis with NLP, interactive dashboards, and AI-based automated portfolio management.
 
