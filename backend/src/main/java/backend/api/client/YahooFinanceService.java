@@ -6,10 +6,10 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class YahooFinanceService {
 
-    public static String getGlobalQuote(String company, String range) {
+    public static String getGlobalQuote(String company,String interval,String range) {
         String url = String.format(
-                "https://query1.finance.yahoo.com/v8/finance/chart/%s?interval=1d&range=%s",
-                company, range
+                "https://query1.finance.yahoo.com/v8/finance/chart/%s?interval=%s&range=%s",
+                company,interval, range
         );
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
