@@ -4,22 +4,18 @@ import java.util.List;
 
 public interface IIndicators {
     public double simpleMovingAverage(List<Double> asset,Integer period);
-    public double exponentialMovingAverage();
 
     double exponentialMovingAverage(double currentValue, double yesterdayEMA, Integer smoothingFactor, Integer period);
-
-    public double relativeStrengthIndex();
-    public double movingAverageConvergenceDivergence();
 
     double relativeStrengthIndex(double relativeStrength);
 
     double movingAverageConvergenceDivergence(double ema12, double ema26);
 
-    public double BollingerBands();
-
     BollingerBands calculateBollingerBands(List<Double> asset, Integer period);
 
-    public double stochasticOcillator();
-    public double onBalanceVolume();
+    double stochasticOscillatorK(double lastClosingPrice, double lowestPrice, double highestPrice);
 
+    double stochasticOscillatorD(List<Double> kValues);
+
+    double onBalanceVolume(double previousOVB, double currentDayVolume, double lastClosingPrice, double currentClosingPrice);
 }

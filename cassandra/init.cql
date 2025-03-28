@@ -76,6 +76,22 @@ CREATE TABLE IF NOT EXISTS market_data_1m (
             }
    AND default_time_to_live = 2592000;
 
+CREATE TABLE IF NOT EXISTS technical_indicators (
+                                                    symbol text,
+                                                    date_bucket text, -- Même format que dans market_data_1m ('YYYY-MM')
+                                                    timestamp timestamp,
+                                                    indicator_type text, -- Par exemple "RSI", "EMA", "MACD", "BB"
+                                                    value double,
+                                                    parameters map<text, double>, -- Pour stocker les paramètres (période, etc.)
+                                                    PRIMARY KEY ((symbol, date_bucket, indicator_type), timestamp)
+) WITH CLUSTERING ORDER BY (timestamp DESC)
+   AND compaction = {
+            'class': 'TimeWindowCompactionStrategy',
+            'compaction_window_unit': 'DAYS',
+            'compaction_window_size': 1
+            }
+   AND default_time_to_live = 2592000;
+
 -- Corrélations entre actifs financiers (cross-asset correlations)
 CREATE TABLE IF NOT EXISTS asset_correlations (
                                                   base_asset text,
