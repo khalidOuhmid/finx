@@ -40,7 +40,6 @@ public class YahooFinanceProcessorTest {
                 .master("local[*]")
                 .config("spark.sql.warehouse.dir", "file://" + System.getProperty("java.io.tmpdir") + "/spark-warehouse")
                 .config("spark.ui.enabled", "false")
-                // Autres configurations comme avant
                 .getOrCreate();
     }
 
