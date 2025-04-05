@@ -24,6 +24,10 @@ public class IndicatorsInsertion {
         return spark;
     }
 
+    public Dataset<Row> processDataToIndicators(Dataset<Row> indicators) {
+
+    }
+    public boolean validateIndicatorsStructure (Dataset<Row> indicators) {}
     public Dataset<Row> createIndicatorsEmptyDataFrame(String company) {
         return getSpark().createDataFrame(
                 Collections.emptyList(),
@@ -35,6 +39,7 @@ public class IndicatorsInsertion {
                         .add("parameters", DataTypes.createMapType(DataTypes.StringType, DataTypes.DoubleType))
         );
     }
+
 
     public Dataset<Row> getMarketData(String companySymbol, String dateBucket) {
         try {

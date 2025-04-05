@@ -25,37 +25,34 @@ public class YahooFinanceProcessor extends AbstractYahooFinanceProcessor {
                     Encoders.STRING()
             );
 
-            // Lire le JSON avec des options configurées pour la robustesse
             Dataset<Row> dataFrame = super.getSpark().read()
                     .option("multiline", "true")
-                    .option("mode", "PERMISSIVE") // Mode permissif pour continuer malgré erreurs
-                    .option("columnNameOfCorruptRecord", "_corrupt_record") // Nommer explicitement la colonne
-                    // .schema(getYahooFinanceSchema()) // Décommenter pour utiliser un schéma explicite
+                    .option("mode", "PERMISSIVE")
+                    .option("columnNameOfCorruptRecord", "_corrupt_record")
                     .json(jsonDataset);
 
-            // Déboguer le schéma
             System.out.println("Structure JSON pour " + company + ":");
             dataFrame.printSchema();
 
-            // Vérifier les enregistrements corrompus
+
             if (Arrays.asList(dataFrame.columns()).contains("_corrupt_record")) {
                 System.err.println("Enregistrements corrompus trouvés pour " + company + ":");
                 dataFrame.select("_corrupt_record").show(false);
 
-                // Si tout est corrompu, retourner un DataFrame vide
+
                 if (dataFrame.columns().length == 1) {
                     System.err.println("JSON entièrement corrompu pour " + company);
                     return super.createEmptyDataFrame(company);
                 }
             }
 
-            // Vérifier que la structure du JSON est valide
+
             if (!validateYahooFinanceStructure(dataFrame)) {
                 System.err.println("Structure JSON invalide pour " + company);
                 return createEmptyDataFrame(company);
             }
 
-            // Extraction sécurisée en utilisant coalesce pour gérer les nulls
+
             Dataset<Row> processedDF = dataFrame.selectExpr(
                     "coalesce(chart.result[0].meta.symbol, '" + company + "') as company_symbol",
                     "chart.result[0].timestamp as timestamps",
@@ -66,13 +63,12 @@ public class YahooFinanceProcessor extends AbstractYahooFinanceProcessor {
                     "chart.result[0].indicators.quote[0].volume as volumes"
             );
 
-            // Vérifier que les données ne sont pas vides
+
             if (processedDF.select("timestamps").filter(functions.col("timestamps").isNotNull()).count() == 0) {
                 System.err.println("Aucune donnée temporelle trouvée pour " + company);
                 return createEmptyDataFrame(company);
             }
 
-            // Vérifier que tous les tableaux ont des dimensions compatibles
             processedDF = processedDF.filter(
                     functions.size(functions.col("timestamps")).gt(0)
                             .and(functions.size(functions.col("opens")).gt(0))
@@ -83,13 +79,11 @@ public class YahooFinanceProcessor extends AbstractYahooFinanceProcessor {
                             .and(functions.size(functions.col("timestamps")).equalTo(functions.size(functions.col("volumes"))))
             );
 
-            // Vérifier s'il reste des données après le filtrage
             if (processedDF.count() == 0) {
                 System.err.println("Aucune donnée valide après filtrage pour " + company);
                 return createEmptyDataFrame(company);
             }
 
-            // Créer le Dataset final en explosant les tableaux
             Dataset<Row> finalDF = processedDF.select(
                             functions.col("company_symbol"),
                             functions.explode(
@@ -177,12 +171,11 @@ public class YahooFinanceProcessor extends AbstractYahooFinanceProcessor {
                 return false;
             }
 
-            // Vérifier si result existe et n'est pas vide
             // Solution au problème de cast Integer vers Long
             Object countObj = dataFrame.selectExpr("size(chart.result)").first().get(0);
             long resultCount;
             if (countObj instanceof Integer) {
-                resultCount = ((Integer) countObj).longValue(); // Conversion sécurisée Integer → Long
+                resultCount = ((Integer) countObj).longValue();
             } else {
                 resultCount = (Long) countObj;
             }

@@ -1,6 +1,7 @@
 package backend.data.cassandra;
 
 public enum ECassandraTables {
+    STOCK_DATA,
     stock_indices,
     companies,
     companies_by_sector,
