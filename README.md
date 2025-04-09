@@ -23,8 +23,9 @@ Eventually, this platform will offer advanced features such as real-time analysi
 |-------|------|--------|
 | Phase 1 | Goal 1: Retrieve and Normalize Yahoo Finance Data | ✅ Completed |
 | Phase 1 | Goal 2: Create Cassandra Schema | ✅ Completed |
-| Phase 2 | Goal 3: Calculate Technical Indicators | 🔄 In progress |
-| Phase 2-6 | Goals 4-12 | ⏳ Planned |
+| Phase 2 | Goal 3: Calculate Technical Indicators | ✅ Completed |
+| Phase 3 | Goal 4: Build correlation matrix | 🔄 In progress |
+| Phase 2-6 | Goals 5-12 | ⏳ Planned |
 
 ## Detailed Roadmap
 
