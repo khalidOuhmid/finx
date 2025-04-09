@@ -78,11 +78,11 @@ CREATE TABLE IF NOT EXISTS market_data_1m (
 
 CREATE TABLE IF NOT EXISTS technical_indicators (
                                                     symbol text,
-                                                    date_bucket text, -- Même format que dans market_data_1m ('YYYY-MM')
+                                                    date_bucket text,
                                                     timestamp timestamp,
-                                                    indicator_type text, -- Par exemple "RSI", "EMA", "MACD", "BB"
-                                                    value double,
-                                                    parameters map<text, double>, -- Pour stocker les paramètres (période, etc.)
+                                                    indicator_type text,
+                                                    values map<text, double>, -- Remplace la colonne value simple
+                                                    parameters map<text, double>,
                                                     PRIMARY KEY ((symbol, date_bucket, indicator_type), timestamp)
 ) WITH CLUSTERING ORDER BY (timestamp DESC)
    AND compaction = {
