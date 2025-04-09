@@ -36,3 +36,29 @@ spring-boot-devtools
 /cassandra/data/
 /cassandra/saved_caches/
 cassandra/hints/
+
+# Fichiers de configuration contenant des secrets
+application-dev.properties
+application-local.properties
+application-prod.properties
+application-secret.properties
+application-secret.yml
+application-*.properties
+application-*.yml
+!application.properties
+!application.yml
+
+# Fichiers d'environnement
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# Fichiers de clés et certificats
+*.jks
+*.p12
+*.pem
+*.key
+keystore/
