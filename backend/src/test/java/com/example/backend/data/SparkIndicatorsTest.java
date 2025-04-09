@@ -29,7 +29,12 @@ public class SparkIndicatorsTest {
         spark = SparkSession.builder()
                 .appName("IndicatorsTest")
                 .master("local[*]")
+                .config("spark.ui.enabled", "false")
+                .config("spark.serializer", "org.apache.spark.serializer.JavaSerializer")
+                .config("spark.sql.shuffle.partitions", "2")
                 .getOrCreate();
+
+        spark.sparkContext().setCheckpointDir("/tmp/spark-test-checkpoint");
     }
 
     @AfterAll
@@ -39,7 +44,6 @@ public class SparkIndicatorsTest {
         }
     }
 
-    // Méthode utilitaire pour créer un jeu de données de test
     private Dataset<Row> createTestDataset() {
         StructType schema = DataTypes.createStructType(new StructField[] {
                 DataTypes.createStructField("timestamp", DataTypes.TimestampType, false),
@@ -63,39 +67,45 @@ public class SparkIndicatorsTest {
 
     @Test
     void testBollingerBandsIndicator() {
-        // Créer les données de test
         Dataset<Row> testData = createTestDataset();
 
-        // Créer l'indicateur
+        assertEquals(5, testData.count(), "Le dataset de test devrait avoir 5 lignes");
+
         SparkBollingerBandsIndicator indicator = new SparkBollingerBandsIndicator(3, "close");
 
-        // Calculer l'indicateur
         Dataset<Row> result = indicator.calculate(testData);
 
-        // Vérifier les colonnes générées
-        assertTrue(Arrays.asList(result.columns()).contains("bollinger_middle"));
-        assertTrue(Arrays.asList(result.columns()).contains("bollinger_upper"));
-        assertTrue(Arrays.asList(result.columns()).contains("bollinger_lower"));
+        assertEquals(testData.count(), result.count(), "Le résultat devrait avoir le même nombre de lignes que l'entrée");
 
-        // Pour les 3 premières lignes, les valeurs peuvent être NaN/null car nous avons une période de 3
-        // Mais après cela, nous devrions avoir des valeurs
-        if (result.count() >= 5) {
-            Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
+        List<String> columns = Arrays.asList(result.columns());
+        assertTrue(columns.contains("bollinger_middle"), "La colonne bollinger_middle devrait exister");
+        assertTrue(columns.contains("bollinger_upper"), "La colonne bollinger_upper devrait exister");
+        assertTrue(columns.contains("bollinger_lower"), "La colonne bollinger_lower devrait exister");
 
-            assertNotNull(lastRow.getAs("bollinger_middle"));
-            assertNotNull(lastRow.getAs("bollinger_upper"));
-            assertNotNull(lastRow.getAs("bollinger_lower"));
+        result.cache();
 
-            // Pour des données en tendance, la bande médiane devrait être proche de la moyenne des derniers prix
-            double expectedMiddle = (103.0 + 104.0 + 105.0) / 3.0;
-            assertEquals(expectedMiddle, lastRow.getAs("bollinger_middle"), 0.001);
+        Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
 
-            // La bande supérieure devrait être au-dessus de la médiane
-            assertTrue((Double)lastRow.getAs("bollinger_upper") > (Double)lastRow.getAs("bollinger_middle"));
+        Double middleBand = lastRow.getAs("bollinger_middle");
+        Double upperBand = lastRow.getAs("bollinger_upper");
+        Double lowerBand = lastRow.getAs("bollinger_lower");
 
-            // La bande inférieure devrait être en-dessous de la médiane
-            assertTrue((Double)lastRow.getAs("bollinger_lower") < (Double)lastRow.getAs("bollinger_middle"));
-        }
+        assertNotNull(middleBand, "La bande médiane ne devrait pas être nulle");
+        assertNotNull(upperBand, "La bande supérieure ne devrait pas être nulle");
+        assertNotNull(lowerBand, "La bande inférieure ne devrait pas être nulle");
+
+        // Pour des données en tendance, la bande médiane devrait être proche de la moyenne des derniers prix
+        double expectedMiddle = (103.0 + 104.0 + 105.0) / 3.0;
+        assertEquals(expectedMiddle, middleBand, 0.001, "La bande médiane devrait être la moyenne des 3 derniers prix");
+
+        // La bande supérieure devrait être au-dessus de la médiane
+        assertTrue(upperBand > middleBand, "La bande supérieure devrait être au-dessus de la médiane");
+
+        // La bande inférieure devrait être en-dessous de la médiane
+        assertTrue(lowerBand < middleBand, "La bande inférieure devrait être en-dessous de la médiane");
+
+        // Libérer le cache
+        result.unpersist();
     }
 
     @Test
@@ -109,20 +119,28 @@ public class SparkIndicatorsTest {
         // Calculer l'indicateur
         Dataset<Row> result = indicator.calculate(testData);
 
+        // Vérifier que le résultat a le même nombre de lignes que l'entrée
+        assertEquals(testData.count(), result.count(), "Le résultat devrait avoir le même nombre de lignes que l'entrée");
+
         // Vérifier la colonne générée
-        assertTrue(Arrays.asList(result.columns()).contains("SMA_3"));
+        assertTrue(Arrays.asList(result.columns()).contains("SMA_3"), "La colonne SMA_3 devrait exister");
 
-        // Pour les 3 dernières lignes, nous devrions avoir des valeurs SMA
-        if (result.count() >= 5) {
-            Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
+        // Cache le résultat pour accélérer les accès
+        result.cache();
 
-            // Vérifier que la valeur existe
-            assertNotNull(lastRow.getAs("SMA_3"));
+        // Récupérer la dernière ligne (plus récente)
+        Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
 
-            // Pour les 3 derniers points (103, 104, 105), la moyenne devrait être 104
-            double expectedSMA = (103.0 + 104.0 + 105.0) / 3.0;
-            assertEquals(expectedSMA, lastRow.getAs("SMA_3"), 0.001);
-        }
+        // Vérifier que la valeur existe et n'est pas nulle
+        Double sma = lastRow.getAs("SMA_3");
+        assertNotNull(sma, "La valeur SMA ne devrait pas être nulle");
+
+        // Pour les 3 derniers points (103, 104, 105), la moyenne devrait être 104
+        double expectedSMA = (103.0 + 104.0 + 105.0) / 3.0;
+        assertEquals(expectedSMA, sma, 0.001, "La SMA devrait être la moyenne des 3 derniers prix de clôture");
+
+        // Libérer le cache
+        result.unpersist();
     }
 
     @Test
@@ -136,18 +154,31 @@ public class SparkIndicatorsTest {
         // Calculer l'indicateur
         Dataset<Row> result = indicator.calculate(testData);
 
+        // Vérifier que le résultat a le même nombre de lignes que l'entrée
+        assertEquals(testData.count(), result.count(), "Le résultat devrait avoir le même nombre de lignes que l'entrée");
+
         // Vérifier la colonne générée
-        assertTrue(Arrays.asList(result.columns()).contains("RSI_3"));
+        assertTrue(Arrays.asList(result.columns()).contains("RSI_3"), "La colonne RSI_3 devrait exister");
+
+        // Cache le résultat pour accélérer les accès
+        result.cache();
 
         // Pour une tendance haussière constante, le RSI devrait être élevé (>50)
-        if (result.count() >= 5) {
-            Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
+        Row lastRow = result.orderBy(result.col("timestamp").desc()).first();
 
-            // Vérifier que la valeur existe
-            assertNotNull(lastRow.getAs("RSI_3"));
+        // Vérifier que la valeur existe et n'est pas nulle
+        Double rsi = lastRow.getAs("RSI_3");
+        assertNotNull(rsi, "La valeur RSI ne devrait pas être nulle");
 
-            // Pour une tendance haussière constante, le RSI devrait être proche de 100
-            assertTrue((Double)lastRow.getAs("RSI_3") > 50.0);
-        }
+        // Pour une tendance haussière constante, le RSI devrait être proche de 100
+        // Note: nous vérifions simplement qu'il est > 50 pour plus de robustesse
+        assertTrue(rsi > 50.0,
+                "Le RSI devrait être supérieur à 50 pour une tendance haussière (valeur actuelle: " + rsi + ")");
+
+        // Des vérifications supplémentaires pourraient être ajoutées ici
+        // Par exemple, pour des données en tendance haussière continue, le RSI devrait être proche de 100
+
+        // Libérer le cache
+        result.unpersist();
     }
 }
