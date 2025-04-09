@@ -15,9 +15,11 @@ public class ValidateStructureStage implements PipelineStage {
 
     @Override
     public Dataset<Row> process(Dataset<Row> input) {
-        for(String requiredColumn : requiredColumns) {
-            if(!Arrays.asList(input.schema().fieldNames()).contains(requiredColumn)) {
-                throw new IllegalArgumentException("Colonne manquante: " + requiredColumn);
+        for(String requiredPath : requiredColumns) {
+            try {
+                input.selectExpr(requiredPath);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Chemin introuvable: " + requiredPath);
             }
         }
         return input;

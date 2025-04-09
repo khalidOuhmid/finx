@@ -31,16 +31,10 @@ public class TimeSeriesProcessingTest {
 
     @BeforeAll
     public static void setupSpark() {
-        // Créer une configuration pour les tests avec l'UI désactivée
         SparkConfiguration sparkConfig = new SparkConfiguration();
 
-        // Initialiser manuellement les propriétés pour le test
         sparkConfig.setMaster("local[*]");
         sparkConfig.setAppName("FinIATest");
-
-        // Remplacer la sérialisation Kryo par JavaSerializer (qui gère mieux les lambdas)
-        // au lieu de: sparkConfig.setSerializerClass("org.apache.spark.serializer.KryoSerializer");
-
         sparkConfig.setShufflePartitions(2);
         sparkConfig.setExecutorMemory("1g");
         sparkConfig.setCassandraHost("localhost");
@@ -50,7 +44,6 @@ public class TimeSeriesProcessingTest {
         SparkConf conf = sparkConfig.buildSparkConf();
         conf.set("spark.ui.enabled", "false");
 
-        // Utiliser le sérialiseur Java au lieu de Kryo pour éviter les problèmes avec SerializedLambda
         conf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
 
         spark = SparkSession.builder().config(conf).getOrCreate();
