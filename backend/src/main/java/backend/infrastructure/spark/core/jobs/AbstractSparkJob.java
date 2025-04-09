@@ -1,11 +1,10 @@
 package backend.infrastructure.spark.core.jobs;
 
-import backend.data.cassandra.ECassandraTables;
+import backend.infrastructure.cassandra.repository.ECassandraTables;
 import backend.infrastructure.spark.config.SparkSessionProvider;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.StructType;
 
 import java.util.Arrays;
 import java.util.Map;

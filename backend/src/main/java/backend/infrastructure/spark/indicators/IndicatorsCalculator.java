@@ -1,8 +1,8 @@
-package backend.data.indicators;
+package backend.infrastructure.spark.indicators;
 
 import java.util.List;
 
-public class IndicatorsCalculator implements IIndicators{
+public class IndicatorsCalculator implements IIndicators {
 
     public double simpleMovingAverage(List<Double> asset,Integer period){
         if (asset == null || asset.isEmpty() || period <= 0) {

@@ -1,4 +1,4 @@
-package backend.data.indicators;
+package backend.infrastructure.spark.indicators;
 
 import java.util.List;
 

@@ -1,6 +1,6 @@
 package backend.infrastructure.spark.core.jobs;
 import backend.api.client.YahooFinanceService;
-import backend.data.cassandra.ECassandraTables;
+import backend.infrastructure.cassandra.repository.ECassandraTables;
 import backend.infrastructure.spark.config.SparkSessionProvider;
 import backend.infrastructure.spark.core.pipeline.DataPipeline;
 import backend.infrastructure.spark.core.pipeline.timeseries.*;

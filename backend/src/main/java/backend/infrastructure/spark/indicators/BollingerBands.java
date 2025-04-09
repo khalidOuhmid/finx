@@ -1,4 +1,4 @@
-package backend.data.indicators;
+package backend.infrastructure.spark.indicators;
 
 public class BollingerBands {
     private double upperBand;

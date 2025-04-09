@@ -1,4 +1,4 @@
-package backend.data.cassandra;
+package backend.infrastructure.cassandra.repository;
 
 public enum ECassandraTables {
     STOCK_DATA,
