@@ -1,8 +1,29 @@
 FROM eclipse-temurin:17-jdk-jammy
-RUN apt-get update && apt-get install -y maven && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+ARG MAVEN_VERSION=3.9.6
+ARG MAVEN_SHA=706f01b20dec0305a822ab614d51f32b07ee11d0218175e55450242e49d2156386483b506b3a4e8a03ac8611bae96395fd5eec15f50d3013d5deed6d1ee18224
+
+RUN apt-get update && \
+    apt-get install -y curl && \
+    mkdir -p /usr/share/maven /usr/share/maven/ref && \
+    curl -fsSL -o /tmp/apache-maven.tar.gz https://apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz && \
+    echo "${MAVEN_SHA} /tmp/apache-maven.tar.gz" | sha512sum -c - && \
+    tar -xzf /tmp/apache-maven.tar.gz -C /usr/share/maven --strip-components=1 && \
+    rm -f /tmp/apache-maven.tar.gz && \
+    ln -s /usr/share/maven/bin/mvn /usr/bin/mvn && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV MAVEN_HOME=/usr/share/maven
+ENV MAVEN_CONFIG="/root/.m2"
+
 WORKDIR /app
 COPY pom.xml ./
-RUN mvn dependency:resolve dependency:resolve-plugins -B
+RUN mvn dependency:resolve dependency:resolve-plugins -B --debug
 COPY . .
 EXPOSE 8081
+
 CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.profiles=dev"]

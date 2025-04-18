@@ -33,29 +33,6 @@ CREATE TABLE IF NOT EXISTS companies (
     }
    AND bloom_filter_fp_chance = 0.01;
 
--- Modèles factoriels (factor models)
-CREATE TABLE IF NOT EXISTS factor_models (
-                                             model_id uuid,
-                                             factors frozen<map<text, double>>, -- Facteurs de risque et leurs pondérations
-                                             r_squared double, -- Coefficient de détermination (qualité du modèle)
-                                             last_updated timestamp,
-                                             PRIMARY KEY (model_id)
-) WITH compaction = {
-    'class': 'TimeWindowCompactionStrategy',
-    'compaction_window_unit': 'DAYS',
-    'compaction_window_size': 7
-    };
-
--- Métriques de risque (risk metrics)
-CREATE TABLE IF NOT EXISTS risk_metrics (
-                                            portfolio_id uuid,
-                                            metric_date timestamp,
-                                            var_95 double, -- Value at Risk à 95%
-                                            expected_shortfall double, -- Perte attendue au-delà du VaR
-                                            stress_scenarios frozen<map<text, double>>, -- Résultats des tests de stress par scénario
-                                            PRIMARY KEY (portfolio_id, metric_date)
-) WITH CLUSTERING ORDER BY (metric_date DESC)
-   AND default_time_to_live = 2592000;
 
 -- Données de marché (market data en séries temporelles)
 CREATE TABLE IF NOT EXISTS market_data_1m (
@@ -92,27 +69,52 @@ CREATE TABLE IF NOT EXISTS technical_indicators (
             }
    AND default_time_to_live = 2592000;
 
--- Corrélations entre actifs financiers (cross-asset correlations)
-CREATE TABLE IF NOT EXISTS asset_correlations (
-                                                  base_asset text,
-                                                  target_asset text,
-                                                  timeframe text, -- Ex : "daily", "weekly"
-                                                  correlation double,
-                                                  last_updated timestamp,
-                                                  PRIMARY KEY ((base_asset), target_asset, timeframe)
-) WITH compaction = {
-    'class': 'SizeTieredCompactionStrategy'
-    }
-   AND comment = 'Corrélations historiques entre actifs';
 
--- Métriques de qualité des données (data quality metrics)
-CREATE TABLE IF NOT EXISTS data_quality_metrics (
-                                                    source text,
-                                                    metric_date text, -- Format : YYYY-MM-DD
-                                                    completeness double, -- % de données complètes disponibles
-                                                    latency double, -- Temps moyen d'ingestion en secondes
-                                                    accuracy double, -- Précision estimée (%)
-                                                    PRIMARY KEY (source, metric_date)
-) WITH compaction = {
-    'class': 'LeveledCompactionStrategy'
-    };
+CREATE TABLE IF NOT EXISTS market_sentiment (
+                                                date_bucket date,               -- jour pour le regroupement (partition efficace)
+                                                timestamp timestamp,            -- horodatage précis du sentiment
+                                                summary text,                   -- résumé de la situation
+                                                sentiment_score double,         -- score de sentiment pour le modèle prédictif
+                                                source text,                    -- source de l'information (site web, etc.)
+                                                article_url text,               -- lien vers l'article original
+                                                article_title text,             -- titre de l'article
+                                                keywords list<text>,            -- mots-clés extraits de l'article
+                                                entities list<text>,            -- entités importantes mentionnées (pays, indices, etc.)
+                                                importance int,                 -- niveau d'importance (1-10)
+                                                PRIMARY KEY ((date_bucket), timestamp)
+) WITH CLUSTERING ORDER BY (timestamp DESC);
+
+
+CREATE TABLE IF NOT EXISTS stock_sentiment (
+                                               symbol text,                    -- symbole de l'actif (AAPL, TSLA, etc.)
+                                               date_bucket date,               -- jour pour le regroupement
+                                               timestamp timestamp,            -- horodatage précis
+                                               summary text,                   -- résumé de la situation
+                                               sentiment_score double,         -- score de sentiment
+                                               evolution_24h double,           -- évolution du sentiment sur 24h
+                                               evolution_7d double,            -- évolution du sentiment sur 7 jours
+                                               source text,                    -- source de l'information
+                                               article_url text,               -- lien vers l'article original
+                                               article_title text,             -- titre de l'article
+                                               keywords list<text>,            -- mots-clés pertinents
+                                               mentioned_companies list<text>, -- autres entreprises mentionnées
+                                               volume_impact double,           -- impact potentiel sur le volume d'échanges
+                                               PRIMARY KEY ((symbol, date_bucket), timestamp)
+) WITH CLUSTERING ORDER BY (timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS news_articles (
+                                             article_id uuid,                -- identifiant unique de l'article
+                                             timestamp timestamp,            -- date de publication
+                                             source text,                    -- source (investing.com, etc.)
+                                             url text,                       -- URL complète
+                                             title text,                     -- titre de l'article
+                                             content text,                   -- contenu complet de l'article
+                                             symbols list<text>,             -- symboles boursiers mentionnés
+                                             processed boolean,              -- indicateur si l'article a été analysé
+                                             PRIMARY KEY (article_id)
+);
+
+CREATE INDEX news_articles_by_timestamp ON news_articles (timestamp);
+CREATE INDEX news_articles_by_symbols ON news_articles (symbols);
+
+
